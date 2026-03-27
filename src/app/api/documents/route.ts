@@ -1,3 +1,4 @@
+import { safeError } from '@/lib/utils/api-error'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -18,7 +19,7 @@ export async function GET() {
     .eq('household_id', profile?.household_id)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -39,6 +40,17 @@ export async function POST(request: Request) {
   const file = formData.get('file') as File
   if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic']
+  if (!allowedTypes.includes(file.type)) {
+    return NextResponse.json({ error: 'Unsupported file type. Allowed: PDF, JPEG, PNG, WebP, HEIC' }, { status: 415 })
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    return NextResponse.json({ error: 'File too large. Maximum 20MB' }, { status: 400 })
+  }
+  if (!file.name || file.name.length > 255) {
+    return NextResponse.json({ error: 'Invalid filename' }, { status: 400 })
+  }
+
   const fileBuffer = Buffer.from(await file.arrayBuffer())
   const filePath = `documents/${profile.household_id}/${crypto.randomUUID()}/${file.name}`
 
@@ -47,7 +59,7 @@ export async function POST(request: Request) {
     .from('documents')
     .upload(filePath, fileBuffer, { contentType: file.type })
 
-  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
+  if (uploadError) return NextResponse.json({ error: safeError(uploadError) }, { status: 500 })
 
   // Insert document record
   const { data: doc, error: insertError } = await supabase
@@ -64,7 +76,17 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 })
+  if (insertError) return NextResponse.json({ error: safeError(insertError) }, { status: 500 })
+
+  // Audit log
+  await supabase.from('audit_logs').insert({
+    action: 'upload',
+    resource_type: 'document',
+    resource_id: doc.id,
+    user_id: user.id,
+  }).then(({ error: auditErr }) => {
+    if (auditErr) console.error('[Audit] Failed to write audit log:', auditErr)
+  })
 
   return NextResponse.json(doc, { status: 201 })
 }

@@ -12,6 +12,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [consentGiven, setConsentGiven] = useState(false)
   const supabase = createClient()
 
   async function handleSignup(e: React.FormEvent) {

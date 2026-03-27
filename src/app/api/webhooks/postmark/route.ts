@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { generateText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 function createServiceClient() {
   const cookieStore = cookies()
@@ -23,7 +24,29 @@ function createServiceClient() {
 }
 
 export async function POST(request: Request) {
-  const payload = await request.json()
+  // Read raw body for HMAC verification (must be done before .json())
+  const rawBody = await request.text()
+
+  // Verify Postmark webhook signature using HMAC-SHA256
+  const webhookToken = process.env.POSTMARK_WEBHOOK_TOKEN
+  if (!webhookToken) {
+    console.warn('[Postmark] POSTMARK_WEBHOOK_TOKEN is not set — skipping signature verification (dev mode)')
+  } else {
+    const signature = request.headers.get('x-postmark-signature') ?? ''
+    const expectedSig = createHmac('sha256', webhookToken).update(rawBody).digest('hex')
+    let sigValid = false
+    try {
+      sigValid = timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))
+    } catch {
+      // Buffer lengths differ → invalid
+    }
+    if (!sigValid) {
+      console.warn('[Postmark] Webhook signature mismatch')
+      return new Response('Unauthorized', { status: 401 })
+    }
+  }
+
+  const payload = JSON.parse(rawBody)
   const supabase = createServiceClient()
 
   const toAddress = payload.To?.toLowerCase()

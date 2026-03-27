@@ -1,3 +1,4 @@
+import { safeError } from '@/lib/utils/api-error'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -19,6 +20,6 @@ export async function GET() {
     .order('received_at', { ascending: false })
     .limit(50)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
   return NextResponse.json(data)
 }

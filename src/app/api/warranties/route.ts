@@ -1,3 +1,4 @@
+import { safeError } from '@/lib/utils/api-error'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -18,6 +19,6 @@ export async function GET() {
     .eq('household_id', profile?.household_id)
     .order('expiry_date', { ascending: true })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
   return NextResponse.json(data)
 }

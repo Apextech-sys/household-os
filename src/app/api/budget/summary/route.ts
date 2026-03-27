@@ -1,3 +1,4 @@
+import { safeError } from '@/lib/utils/api-error'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
     .single()
 
   if (error && error.code !== 'PGRST116') {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: safeError(error) }, { status: 500 })
   }
 
   return NextResponse.json(data ?? { total_income: 0, total_expenses: 0, by_category: {} })

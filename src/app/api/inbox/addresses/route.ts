@@ -1,5 +1,11 @@
+import { safeError } from '@/lib/utils/api-error'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
+
+const addressSchema = z.object({
+  label: z.string().min(1).max(100),
+})
 
 export async function GET() {
   const supabase = createClient()
@@ -18,7 +24,7 @@ export async function GET() {
     .eq('household_id', profile?.household_id)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -35,7 +41,13 @@ export async function POST(request: Request) {
 
   if (!profile) return NextResponse.json({ error: 'No household' }, { status: 400 })
 
-  const { label } = await request.json()
+  const body = await request.json()
+  const parsed = addressSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const { label } = parsed.data
   const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
   const emailAddress = `${slug}-${crypto.randomUUID().slice(0, 8)}@inbound.householdos.co.za`
 
@@ -50,6 +62,6 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }

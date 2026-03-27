@@ -1,5 +1,17 @@
+import { safeError } from '@/lib/utils/api-error'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
+
+const transactionSchema = z.object({
+  description: z.string().min(1),
+  amount: z.number(),
+  category: z.string().optional(),
+  transaction_date: z.string().date(),
+  is_income: z.boolean(),
+  source: z.enum(['manual', 'statement', 'bank_api']),
+  statement_ref: z.string().optional(),
+})
 
 export async function GET() {
   const supabase = createClient()
@@ -19,7 +31,7 @@ export async function GET() {
     .order('transaction_date', { ascending: false })
     .limit(100)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -37,22 +49,26 @@ export async function POST(request: Request) {
   if (!profile) return NextResponse.json({ error: 'No household' }, { status: 400 })
 
   const body = await request.json()
+  const parsed = transactionSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
 
   const { data, error } = await supabase
     .from('budget_transactions')
     .insert({
       household_id: profile.household_id,
-      source: body.source ?? 'manual',
-      description: body.description,
-      amount: body.amount,
-      category: body.category ?? null,
-      transaction_date: body.transaction_date,
-      is_income: body.is_income ?? false,
-      statement_ref: body.statement_ref ?? null,
+      source: parsed.data.source,
+      description: parsed.data.description,
+      amount: parsed.data.amount,
+      category: parsed.data.category ?? null,
+      transaction_date: parsed.data.transaction_date,
+      is_income: parsed.data.is_income,
+      statement_ref: parsed.data.statement_ref ?? null,
     })
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }

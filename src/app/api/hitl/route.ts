@@ -1,5 +1,12 @@
+import { safeError } from '@/lib/utils/api-error'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
+
+const hitlSchema = z.object({
+  action_id: z.string().uuid(),
+  decision: z.enum(['approve', 'reject']),
+})
 
 export async function GET() {
   const supabase = createClient()
@@ -18,7 +25,7 @@ export async function GET() {
     .eq('household_id', profile?.household_id)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -27,7 +34,13 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { action_id, decision } = await request.json()
+  const body = await request.json()
+  const parsed = hitlSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const { action_id, decision } = parsed.data
 
   if (decision === 'approve') {
     const { error } = await supabase
@@ -36,7 +49,7 @@ export async function POST(request: Request) {
       .eq('id', action_id)
       .eq('status', 'proposed')
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
   } else if (decision === 'reject') {
     const { error } = await supabase
       .from('hitl_actions')
@@ -44,9 +57,7 @@ export async function POST(request: Request) {
       .eq('id', action_id)
       .eq('status', 'proposed')
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  } else {
-    return NextResponse.json({ error: 'Invalid decision' }, { status: 400 })
+    if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })
