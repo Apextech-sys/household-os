@@ -17,6 +17,10 @@ export default function SignupPage() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
+    if (!consentGiven) {
+      setError('You must consent to data processing to create an account.')
+      return
+    }
     setLoading(true)
     setError(null)
 
@@ -105,9 +109,24 @@ export default function SignupPage() {
               />
             </div>
 
+            <div className="flex items-start gap-3">
+              <input
+                id="consent"
+                type="checkbox"
+                checked={consentGiven}
+                onChange={(e) => setConsentGiven(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                required
+              />
+              <label htmlFor="consent" className="text-sm text-gray-600">
+                I consent to HouseholdOS processing my personal data as described in the{' '}
+                <Link href="/privacy" className="text-blue-600 hover:underline" target="_blank">Privacy Policy</Link>
+              </label>
+            </div>
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !consentGiven}
               className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
             >
               {loading ? 'Creating account...' : 'Create account'}
