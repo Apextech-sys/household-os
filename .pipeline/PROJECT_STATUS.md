@@ -9,7 +9,7 @@
 - **Started:** 2026-03-28 00:06 SAST
 
 ## Current Phase
-Wave 1: PM + DBA + DevOps (parallel)
+Wave 1.95: Waiting for Shaun approval of PLAN_JOINT.md
 
 ## Pipeline
 - Wave 1: PM + DBA + DevOps (parallel)
@@ -25,9 +25,9 @@ Wave 1: PM + DBA + DevOps (parallel)
 - Post: Docs (ExCo + runbook)
 
 ## Milestones
-- [ ] SPEC analysis (PM)
-- [ ] Supabase project + full schema + SCHEMA_REPORT.md (DBA)
-- [ ] GitHub repo (DevOps)
+- [x] SPEC analysis (PM) — PM_ANALYSIS.md complete
+- [x] Supabase project + full schema + SCHEMA_REPORT.md (DBA) — project vzyeuxczwdpvlfwfzjih, 19 tables, RLS live
+- [x] GitHub repo (DevOps) — Apextech-sys/household-os
 - [ ] AI_ARCHITECTURE.md (AI Specialist)
 - [ ] BACKEND_ARCHITECTURE.md (Backend Specialist)
 - [ ] Architecture ADRs (Docs)
