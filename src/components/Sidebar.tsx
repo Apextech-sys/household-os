@@ -10,6 +10,13 @@ import {
   Receipt,
   Wallet,
   MessageSquare,
+  Landmark,
+  Shield,
+  CreditCard,
+  Zap,
+  Car,
+  HeartPulse,
+  Wrench,
 } from 'lucide-react'
 
 const navItems = [
@@ -18,6 +25,13 @@ const navItems = [
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/receipts', label: 'Receipts', icon: Receipt },
   { href: '/budget', label: 'Budget', icon: Wallet },
+  { href: '/banking', label: 'Banking', icon: Landmark },
+  { href: '/insurance', label: 'Insurance', icon: Shield },
+  { href: '/credit-cards', label: 'Credit Cards', icon: CreditCard },
+  { href: '/utilities', label: 'Utilities', icon: Zap },
+  { href: '/vehicles', label: 'Vehicles', icon: Car },
+  { href: '/medical', label: 'Medical Aid', icon: HeartPulse },
+  { href: '/maintenance', label: 'Maintenance', icon: Wrench },
   { href: '/chat', label: 'Chat', icon: MessageSquare },
 ]
 
