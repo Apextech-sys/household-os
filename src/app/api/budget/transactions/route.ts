@@ -1,5 +1,6 @@
 import { safeError } from '@/lib/utils/api-error'
 import { createClient } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -70,5 +71,17 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return NextResponse.json({ error: safeError(error) }, { status: 500 })
+
+  // Audit log
+  await logAudit(supabase, {
+    household_id: profile.household_id,
+    user_id: user.id,
+    action: 'transaction.create',
+    entity_type: 'budget_transaction',
+    entity_id: data.id,
+    details: { amount: parsed.data.amount, source: parsed.data.source, is_income: parsed.data.is_income },
+    ip_address: request.headers.get('x-forwarded-for'),
+  })
+
   return NextResponse.json(data, { status: 201 })
 }

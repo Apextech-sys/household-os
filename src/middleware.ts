@@ -41,6 +41,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // POPIA consent check: redirect authenticated users to consent page if they haven't consented
+  if (
+    user &&
+    !request.nextUrl.pathname.startsWith('/auth') &&
+    !request.nextUrl.pathname.startsWith('/onboarding/consent') &&
+    !request.nextUrl.pathname.startsWith('/api/') &&
+    request.nextUrl.pathname !== '/'
+  ) {
+    const { data: consentPref } = await supabase
+      .from('user_preferences')
+      .select('value')
+      .eq('user_id', user.id)
+      .eq('key', 'popia_consent')
+      .single()
+
+    if (!consentPref) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/onboarding/consent'
+      return NextResponse.redirect(url)
+    }
+  }
+
   return supabaseResponse
 }
 

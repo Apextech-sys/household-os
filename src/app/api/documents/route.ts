@@ -1,5 +1,6 @@
 import { safeError } from '@/lib/utils/api-error'
 import { createClient } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
@@ -79,13 +80,14 @@ export async function POST(request: Request) {
   if (insertError) return NextResponse.json({ error: safeError(insertError) }, { status: 500 })
 
   // Audit log
-  await supabase.from('audit_logs').insert({
-    action: 'upload',
-    resource_type: 'document',
-    resource_id: doc.id,
+  await logAudit(supabase, {
+    household_id: profile.household_id,
     user_id: user.id,
-  }).then(({ error: auditErr }) => {
-    if (auditErr) console.error('[Audit] Failed to write audit log:', auditErr)
+    action: 'document.upload',
+    entity_type: 'document',
+    entity_id: doc.id,
+    details: { filename: file.name, file_size: file.size, mime_type: file.type },
+    ip_address: request.headers.get('x-forwarded-for'),
   })
 
   return NextResponse.json(doc, { status: 201 })
